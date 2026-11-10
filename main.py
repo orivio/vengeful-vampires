@@ -47,16 +47,28 @@ def noise_surface():
 noise = noise_surface()   
                    
 
-#class Enemy: ## class define enemy NPCs
- #    def __init__(self,):
-  #      pass
-#states 
-#current_state = "Wander"
-#states = ["Wander", "Chase", "Flee"]
-#for Enemy in NPCS:
-  #  if Enemy.distanceto(Player):
- #       current_state = "Chase"
-#    if 
+class Enemy: ## class define enemy NPCs
+    def __init__(self,x, y, hp ):
+        self.pos = pygame.math.Vector2(x, y)
+        self.dir = pygame.math.Vector2(0, 0)
+        self.health = hp
+        self.current_state = "Wander"
+        self.states = ["Wander", "Chase", "Flee"]
+    def get_hit(self):
+         self.health -= 1
+         if self.health <= 0:
+              NPCS.remove() 
+    def fsm(self, NPCS, player): 
+        for enemy in NPCS:
+            if enemy.distanceto(player):
+                enemy.current_state = "Chase"
+    def track(self, player):
+        if self.current_state == "Wander":
+            pass #to write
+        elif self.current_state == "Chase":
+            pass #to write
+        elif self.current_state == "Flee":
+            pass #to write
 
 #player_movement_tracking_MDP = zeros(9,9,9,9) # this is for 3 context and 2-step prediction. the first step prediction is not relevant though as it only aims two steps ahead anyway, so only the final lcoation needs to be recorded (e.g, left,right and nothing would be recorded the same over 2 steps) 
 
