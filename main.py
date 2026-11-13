@@ -1,6 +1,5 @@
 import pygame
-import numpy
-import sys
+import random
 from noise import pnoise2
 
 pygame.init()
@@ -18,9 +17,9 @@ HEIGHT = 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
 SCALE = 100.0
-OCTAVES = 2
-PERSISTENCE = 0.5
-LACUNARITY = 2
+OCTAVES = random.randint(2, 3)
+PERSISTENCE = random.randint(3, 5) / 10
+LACUNARITY = random.randint(1, 3)
 
 def noise_surface():
     surf = pygame.Surface((WIDTH*10, HEIGHT*10))
@@ -89,24 +88,41 @@ class Enemy: ## class define enemy NPCs
 
 #player_movement_tracking_MDP = zeros(9,9,9,9) # this is for 3 context and 2-step prediction. the first step prediction is not relevant though as it only aims two steps ahead anyway, so only the final lcoation needs to be recorded (e.g, left,right and nothing would be recorded the same over 2 steps) 
 class Player: ## define player
-    def __init__(self, x,y, hp):
+    def __init__(self, x, y, hp):
         self.pos = pygame.math.Vector2(x, y)
         self.dir = pygame.math.Vector2(0, 0)
         self.health = hp
         self.hitbox = pygame.Rect(self.pos.x + 10, self.pos.y + 20, 20, 40)
         self.speed = 10
         self.stamina = 100 #make subtract by 2 for every second shift is held
+        self.current_surface = "grass"
     def get_hit(self):
         hp -= 10
-    def Walk(self, direction, surf):
-        self.pos += self.speed
-    def Sprint(self):
-        self.pos += 15
-        pass
+    def Walk(self, direction):
+        if self.current_surface == "mud":
+            move = self.dir * direction * pygame.math.Vector2(0.6, 0.6)
+            self.pos += move
+        if self.current_surface == "water":
+            move =  self.dir * direction * pygame.math.Vector2(0.4, 0.4)
+            self.pos += move
+        if self.current_surface == "rock":
+             if self.dir.x < 0:
+                  self.dir.x += 1
+             elif self.dir.x > 0:
+                  self.dir.x -= 1
+             if self.dir.y < 0:
+                  self.dir.y += 1
+             elif self.dir.y > 0:
+                  self.dir.y -= 1
+    def Sprint(self): #WIP
+        if not self.dir.length_squared > 225:
+            self.dir *= pygame.math.Vector2(1.5, 1.5)
     def Apply_GarlicEffect(self):
         pass
-    def check_surface(self, surf): #could use some work, like implementing the hitbox instead of player coords
-        temp = surf.get_at(self.pos.x, self.pos.y)
+    def draw(self):
+         pygame.draw.rect(screen, (255, 255, 255), self.hitbox)
+    def check_surface(self): #could use some work, like implementing the hitbox instead of player coords
+        temp = noise.get_at(self.pos)
         match temp:
             case (84, 86, 89):
                 return "rock"
@@ -116,23 +132,40 @@ class Player: ## define player
                 return "water"
             case _:
                 return "grass"
+    def upd(self):
+        self.current_surface = self.check_surface()
+        self.draw()
             
 enemies = []
-player = Player(200, 200, 100)
+player = Player(100, 100, 100)
 gameloop = True
 
 while gameloop:
     for event in pygame.event.get(): #event loop
         if event.type == pygame.QUIT:
             gameloop = False
+    screen.blit(noise, (0, 0))
+    player.upd()
 
     keys = pygame.key.get_pressed() #input
     if keys[pygame.K_w]:
-        player.Walk(up)
+        player.Walk(pygame.math.Vector2(0, -1))
         if keys[pygame.K_LSHIFT]:
             player.Sprint()
+    if keys[pygame.K_s]:
+            player.Walk(pygame.math.Vector2(0, 1))
+            if keys[pygame.K_LSHIFT]:
+                player.Sprint()
+    if keys[pygame.K_a]:
+            player.Walk(pygame.math.Vector2(-1, 0))
+            if keys[pygame.K_LSHIFT]:
+                player.Sprint()
+    if keys[pygame.K_d]:
+            player.Walk(pygame.math.Vector2(1, 0))
+            if keys[pygame.K_LSHIFT]:
+                player.Sprint()
 
-    screen.blit(noise, (0, 0))
+    
     pygame.display.flip()
 
 pygame.quit()
