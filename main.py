@@ -1,27 +1,7 @@
-# # the colors are detected correctly, but aren't compared with the values correctly so the player speed never changes
-
-
-
-
-# # fix sprint so it updates the player input method
 # # fix the enemy.detect_Check method
 # # fix enemy fsm
 
-
-# # # change walk so that at each frame it 
-# # # checks one pixel in up/down/left/right 
-# # # and then if rock then speed in that 
-# # # direction gets set to 0. (e.g. if there’s
-# # # rock to the left, then speed.x = max(0,speed.x)
-# # # this accomplishes. Opposite for right (min) 
-# # #and then same for up/down with y)
-
-
-# # change the Walk() check for rock so it checks if the player is moving into a rock, and if it is set movement in that direction = 0
 # # after noise generation, change the edges to rocks so that players can't escape
-
-
-
 
 # # fix camera, expand map
 # # implement damage and health for enemies and player, implement death for both
@@ -104,27 +84,21 @@ class Enemy: ## class define enemy NPCs
    def remove(self):
        pass
    def detect_Check(self, player_pos):
-       distance = self.pos.distance_to(player_pos)
-       if distance > 20:
-           return False
-       distance = distance.normalize()
-       dot = self.dir.dot(distance)
-       if dot >= 0.8666: ### CHECks if in 60 degree veiw
-           return True
-       else:
-           return False
+       if self.pos.distance_to(player_pos) > 250: return false
+       dir = (player_pos - self.pos).normalize()
+       return self.dir.dot(dir) >= 0.8666 #60 degree FOV
    def draw(self, screen):
        pygame.draw.rect(screen, (255, 0, 255), (self.pos.x, self.pos.y, 20, 20))
    def fsm(self, NPCS, player):
        for enemy in NPCS:
            if enemy.current_state == "Wander":
-               if enemy.detect_Check(player.getPos()):
+               if enemy.detect_Check(player.pos()):
                    enemy.current_state = "Chase"
-               if player.Garlic_On() and enemy.detect_Check(player.getPos()):
+               if player.garlic_timer>0 and enemy.detect_Check(player.pos()):
                    enemy.current_state = "Flee"
            elif enemy.current_state == "Chase":
-               if enemy.detect_Check(player):#WIP
-                       pass
+               if enemy.detect_Check(player):
+                    pass
    def track(self, player, dt):
        if self.current_state == "Wander":
            pass #to write
@@ -162,8 +136,12 @@ class Player: ## define player
    def Walk(self, dt, s_a):
        if self.current_surface == "rock":
            return
-       terrain_speed_mult = {“grass”: 1, “mud”: 0.6, “water”: 0.4}[self.current_surface]
-       self.pos += self.dir*self.speed*terrain_speed_mult*speed_adjust*dt
+       terrains = {"grass": 1.0, "mud": 0.6, "water": 0.4}
+       terrain_speed_mult = terrains[self.current_surface]
+       self.pos += self.dir*self.speed*terrain_speed_mult*s_a*dt
+       self.update_surface()
+       if self.current_surface == "rock":
+        self.pos -= self.dir*self.speed*terrain_speed_mult*s_a*dt
    def Apply_GarlicEffect(self):
        pass
    def draw(self):
@@ -171,14 +149,14 @@ class Player: ## define player
    def update_surface(self): #could use some work, like implementing the hitbox instead of player coords
        temp = noise.get_at((int(self.pos.x), int(self.pos.y))) 
        print(temp)
-       match temp:
-           case ((84, 86, 89, 255)):
+       match ((temp.r, temp.g, temp.b)):
+           case ((84, 86, 89)):
                self.current_surface = "rock" #return "rock"
                print("rock")
-           case ((87, 57, 24, 255)):
+           case ((87, 57, 24)):
                self.current_surface = "mud" #return "mud"
                print("mud")
-           case ((64, 77, 115, 255)):
+           case ((64, 77, 115)):
                self.current_surface = "water"# return "water"
                print("water")
            case _:
@@ -290,7 +268,9 @@ while running:
    if not (game_over or game_won):
        night_time -= dt
        if night_time <= 0 and not dracula_spawned:
-           print("Sunrise...... Dracula's coming O.O")
+           print("Come on. You idiots haven't caught that human yet!?")
+           print("I'm taking matters into my own hands.")
+           print("Dracula approaches as the sun rises.")
            boss = Boss(player.pos.x + 100, player.pos.y + 100) #spawn boss (we should make a random spawning method)
            dracula_spawned = True
           
