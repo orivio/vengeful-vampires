@@ -160,37 +160,16 @@ class Player: ## define player
                self.stamina = max(0,self.stamina-20*dt)
            self.Walk(dt, speed_adjust)
    def Walk(self, dt, s_a):
-       if self.current_surface == "grass":
-           move = self.dir.elementwise() * pygame.math.Vector2(1, 1)
-           move = pygame.math.Vector2(move.x * self.speed * dt, move.y * self.speed * dt)
-           self.pos += move
-       if self.current_surface == "mud":
-           move = self.dir.elementwise() * pygame.math.Vector2(0.6, 0.6)
-           move = pygame.math.Vector2(move.x * self.speed * dt, move.y * self.speed * dt)
-           self.pos += move
-       if self.current_surface == "water":
-           move = self.dir.elementwise() * pygame.math.Vector2(0.4, 0.4)
-           move = pygame.math.Vector2(move.x * self.speed * dt, move.y * self.speed * dt)
-           self.pos += move
        if self.current_surface == "rock":
-            if self.dir.x < 0:
-                 self.dir.x += 1
-            elif self.dir.x > 0:
-                 self.dir.x -= 1
-            if self.dir.y < 0:
-                 self.dir.y += 1
-            elif self.dir.y > 0:
-                 self.dir.y -= 1
-   def Sprint(self): #WIP
-       if not self.dir.length_squared > 225:
-           self.speed *= pygame.math.Vector2(1.5, 1.5)
+           return
+       terrain_speed_mult = {“grass”: 1, “mud”: 0.6, “water”: 0.4}[self.current_surface]
+       self.pos += self.dir*self.speed*terrain_speed_mult*speed_adjust*dt
    def Apply_GarlicEffect(self):
        pass
    def draw(self):
         pygame.draw.rect(screen, (255, 255, 255), self.hitbox)
    def update_surface(self): #could use some work, like implementing the hitbox instead of player coords
-       temp = noise.get_at((int(self.pos.x), int(self.pos.y))) #this returns a color, which is not recognized by the match
-       # the color is correct but the comparison doesn't see them as equal to our predtermined siurface colors
+       temp = noise.get_at((int(self.pos.x), int(self.pos.y))) 
        print(temp)
        match temp:
            case ((84, 86, 89, 255)):
