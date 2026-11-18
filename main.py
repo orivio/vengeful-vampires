@@ -1,22 +1,14 @@
 # # fix the enemy.detect_Check method
 # # fix enemy fsm
-
 # # after noise generation, change the edges to rocks so that players can't escape
-
 # # fix camera, expand map
 # # implement damage and health for enemies and player, implement death for both
-
-
 # stuff I'm doing: fsm, a*, paths, etc
-
-
 import pygame
 import random
 from noise import pnoise2
 
-
 pygame.init()
-
 
 #for terrain:
 TERRAIN_COLORS = {
@@ -26,28 +18,21 @@ TERRAIN_COLORS = {
    "rock": (84, 86, 89)
 }
 
-
 WIDTH = 800
 HEIGHT = 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-
 
 SCALE = 300.0
 OCTAVES = random.randint(2, 3)
 PERSISTENCE = random.randint(3, 5) / 10
 LACUNARITY = random.randint(1, 3)
 
-
 def noise_surface():
    surf = pygame.Surface((WIDTH*10, HEIGHT*10))
    arr = pygame.PixelArray(surf)
-
-
    for y in range(HEIGHT):
         for x in range(WIDTH):
                n = pnoise2(x/SCALE, y/SCALE, octaves=OCTAVES, persistence=PERSISTENCE, lacunarity=LACUNARITY)
-
-
                type = (0, 0, 0)
                if n < -0.3:
                     type = TERRAIN_COLORS["water"]
@@ -57,18 +42,20 @@ def noise_surface():
                     type = TERRAIN_COLORS["grass"]
                else:
                     type = TERRAIN_COLORS["rock"]
-
-
                arr[x, y] = type
    del arr
    return surf
 
+noise = noise_surface()
 
-noise = noise_surface()  
-
-
-         
-
+def rock_border(surf): #doesnt work yet, check
+    arr = pygame.PixelArray(surf)
+    for i in range(WIDTH):
+        arr[0, i] = "rock"
+        arr[HEIGHT, i] = "rock"
+    for j in range(WIDTH):
+        arr[j, 0] = "rock"
+        arr[j, HEIGHT] = "rock"
 
 class Enemy: ## class define enemy NPCs
    def __init__(self,x, y, hp):
@@ -78,23 +65,20 @@ class Enemy: ## class define enemy NPCs
        self.current_state = "Wander"
        self.states = ["Wander", "Chase", "Flee"]
    def get_hit(self, NPCS):
-        self.health -= 1
+        self.health = max(0,self.health-1)
         if self.health <= 0:
-             NPCS.remove()
-   def remove(self):
-       pass
+             NPCS.remove(self)
    def detect_Check(self, player_pos):
        if self.pos.distance_to(player_pos) > 250: return false
        dir = (player_pos - self.pos).normalize()
        return self.dir.dot(dir) >= 0.8666 #60 degree FOV
    def draw(self, screen):
        pygame.draw.rect(screen, (255, 0, 255), (self.pos.x, self.pos.y, 20, 20))
-   def fsm(self, NPCS, player):
-       for enemy in NPCS:
-           if enemy.current_state == "Wander":
-               if enemy.detect_Check(player.pos()):
-                   enemy.current_state = "Chase"
-               if player.garlic_timer>0 and enemy.detect_Check(player.pos()):
+   def fsm(self, player):
+       if self.current_state == "Wander":
+           if self.detect_Check(player.pos()):
+               self.current_state = "Chase"
+           if player.garlic_timer>0 and enemy.detect_Check(player.pos()):
                    enemy.current_state = "Flee"
            elif enemy.current_state == "Chase":
                if enemy.detect_Check(player):
@@ -107,7 +91,6 @@ class Enemy: ## class define enemy NPCs
        elif self.current_state == "Flee":
            pass #to write
 
-
 #player_movement_tracking_MDP = zeros(9,9,9,9) # this is for 3 context and 2-step prediction. the first step prediction is not relevant though as it only aims two steps ahead anyway, so only the final lcoation needs to be recorded (e.g, left,right and nothing would be recorded the same over 2 steps)
 class Player: ## define player
    def __init__(self, x, y, hp):
@@ -118,6 +101,7 @@ class Player: ## define player
        self.speed = 200
        self.stamina = 100 #make subtract by 2 for every second shift is held
        self.current_surface = "grass"
+       self.cam = 
    def get_hit(self):
        self.health -= 10
    def player_input(self, keys, dt):
@@ -133,6 +117,7 @@ class Player: ## define player
                speed_adjust=1.5
                self.stamina = max(0,self.stamina-20*dt)
            self.Walk(dt, speed_adjust)
+        
    def Walk(self, dt, s_a):
        if self.current_surface == "rock":
            return
@@ -147,27 +132,25 @@ class Player: ## define player
    def draw(self):
         pygame.draw.rect(screen, (255, 255, 255), self.hitbox)
    def update_surface(self): #could use some work, like implementing the hitbox instead of player coords
-       temp = noise.get_at((int(self.pos.x), int(self.pos.y))) 
+       temp = noise.get_at((int(self.pos.x), int(self.pos.y)))
        print(temp)
        match ((temp.r, temp.g, temp.b)):
            case ((84, 86, 89)):
                self.current_surface = "rock" #return "rock"
-               print("rock")
+               #print("rock")
            case ((87, 57, 24)):
                self.current_surface = "mud" #return "mud"
-               print("mud")
+               #print("mud")
            case ((64, 77, 115)):
                self.current_surface = "water"# return "water"
-               print("water")
+               #print("water")
            case _:
                self.current_surface = "grass"# return "grass"
-               print("grass")
+               #print("grass")
    def update(self):
        self.update_surface()
        self.hitbox.left = self.pos.x - 5
        self.hitbox.top = self.pos.y - 10
-       self.draw()
-
 
 # placeholders:
 class MazeGen:
@@ -175,7 +158,6 @@ class MazeGen:
        pass
    def draw(self, screen):
        pass #draw grid
-
 
 class Markov:
    def __init__(self):
@@ -185,20 +167,14 @@ class Markov:
    def returnPredictions(self):
        return [] # needs to return predicted cells
 
-
-
-
 class Item:
    def __init__(self, x, y, item_type):
        self.pos = pygame.math.Vector2(x,y)
        self.type = item_type
-      
+     
    def draw(self, screen):
        color = ((255, 255, 0) if self.type == "bread" else (0, 255, 255))
        pygame.draw.circle(screen, color, (int(self.pos.x), int(self.pos.y)), 8)
-
-
-
 
 class Boss:
    def __init__(self, x, y):
@@ -210,23 +186,16 @@ class Boss:
    def draw(self, screen):
        pygame.draw.rect(screen, (200, 0, 0), (self.pos.x, self.pos.y, 50, 50)) #replace with sprite
 
-
 ## main loop:
-
-
 Clock = pygame.time.Clock()
 Font = pygame.font.SysFont("Arial", 24)
-
-
-
 
 running = True
 debug_mode = False
 game_over = False
 game_won = False
-night_time = 360.0 # 6 minutes?
+night_time = 360.0 # 6 minutes? yup
 dracula_spawned = False
-
 
 player = Player(50, 100, 100)
 maze = MazeGen()
@@ -235,17 +204,15 @@ enemies = []
 items = []
 boss = None
 
-
 # test items
 items.append(Item(200, 200, "bread"))
 items.append(Item(300, 300, "quiver"))
-
 
 # main loop!!
 while running:
    # dt is seconds btw bcs clock tick does ms
    dt = Clock.tick(60)/1000.0
-  
+ 
    for event in pygame.event.get():
        if event.type == pygame.QUIT:
            running = False
@@ -257,13 +224,10 @@ while running:
            elif event.key == pygame.K_f and not game_over and not game_won:
                # shooting method
                print("Player shot bow")
-              
+             
    keys = pygame.key.get_pressed()
    if not game_over and not game_won:
        player.player_input(keys, dt) # need to change player to use this
-
-
-
 
    if not (game_over or game_won):
        night_time -= dt
@@ -273,14 +237,14 @@ while running:
            print("Dracula approaches as the sun rises.")
            boss = Boss(player.pos.x + 100, player.pos.y + 100) #spawn boss (we should make a random spawning method)
            dracula_spawned = True
-          
+         
        player.update() # surface and terrain interaction
        predictor.recordMoves(player.pos)
-      
+     
        for enemy in enemies:
-           enemy.fsm(enemies, player)
+           enemy.fsm(player)
            enemy.track(player, dt) # need to rewrite track to take dt
-          
+         
        if player.health <= 0:
            game_over = True
        if boss:
@@ -288,17 +252,15 @@ while running:
            if boss.hp <= 0:
                game_won = True
 
-
 # We once sang/ Retrograde, we'd shake the frame of your car/
 # Now I know your name, but not who you are/ It's all okay/
 # There ain't a drop of bad blood, it's all my love
-
 
 ##########    rendering:
    screen.fill((0, 0, 0))
    maze.draw(screen)
    screen.blit(noise, (0, 0))
-  
+ 
    for item in items:
        item.draw(screen)
    for enemy in enemies:
@@ -306,26 +268,21 @@ while running:
    if boss:
        boss.draw(screen)
    player.draw()
-  
+ 
    screen.blit(Font.render(f"Time until dawn: {max(0, int(night_time))}s", True, (255, 255, 255)), (10, 10))
    screen.blit(Font.render(f"HP: {player.health}", True, (255, 255, 255)), (10, 40))
 
-
    if debug_mode:
-       debug_text = Font.render("debug mode activated (F1)", True, (255, 0, 0))
+       debug_text = Font.render("debug mode activated (F1)", True, (255, 255, 255))
+       player_info = Font.render(f"Current Terrain: {player.current_surface}", True, (255, 255, 255))
        screen.blit(debug_text, (10, 70))
+       screen.blit(player_info, (10, 100))
        # need to draw A* path & boss predictions
    if game_over:
        screen.blit(Font.render("Game Over. (r.i.p. lmao)", True, (255, 0, 0)), (WIDTH//2 - 150, HEIGHT//2))
    elif game_won:
        screen.blit(Font.render("Dracula hath been slain. good job mh", True, (0, 255, 0)), (WIDTH//2 - 200, HEIGHT//2))
 
-
-   # display the screen update
    pygame.display.flip()
 
-
 pygame.quit()
-
-
-
