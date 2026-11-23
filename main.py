@@ -6,7 +6,15 @@
 
 
 
+
+
+
+
 # # implement damage to enemies and garlic and allat
+
+
+
+
 
 
 
@@ -15,8 +23,11 @@
 # # make boss actually spawn (he spawns if you press b in debug menu but he needs to trigger in normal gameplay)
 
 
+
+
 # # art: sprites
 # # art: win/loss screens (do this last once everything is done)
+
 
 import pygame
 import math
@@ -30,9 +41,6 @@ _p += _p
 
 pygame.init()
 
-
-
-
 #for terrain:
 TERRAIN_COLORS = {
  "grass": (67, 117, 55),
@@ -41,15 +49,10 @@ TERRAIN_COLORS = {
  "rock": (84, 86, 89)
 }
 
-
-
-
 WIDTH = 800
 HEIGHT = 600
 MAP_SIZE = 10 # number of screens
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-
-
 
 def _fade(t):
     return t * t * t * (t * (t * 6 - 15) + 10)
@@ -83,6 +86,7 @@ def pnoise2(x, y, octaves=1, persistence=0.5, lacunarity=2.0):
         freq *= lacunarity
     return total / max_val
 
+
 SCALE = 300.0
 OCTAVES = random.randint(2, 3)
 PERSISTENCE = random.randint(3, 5) / 10
@@ -90,6 +94,8 @@ LACUNARITY = random.randint(1, 3)
 TILE_SIZE=10
 NOISE_W= WIDTH*MAP_SIZE//TILE_SIZE
 NOISE_H= HEIGHT*MAP_SIZE//TILE_SIZE
+
+
 
 
 def noise_surface():
@@ -113,10 +119,16 @@ def noise_surface():
 
 
 
+
+
+
+
    del arr
    return pygame.transform.scale(small, (WIDTH*MAP_SIZE, HEIGHT*MAP_SIZE))
 
+
 noise = noise_surface()
+
 
 class Enemy: ## class define enemy NPCs
    def __init__(self,x, y, hp):
@@ -128,6 +140,7 @@ class Enemy: ## class define enemy NPCs
        self.health = hp
        self.current_state = "Wander"
        self.states = ["Wander", "Chase", "Flee"]
+       self.hitbox = pygame.Rect(x - 10, y - 10, 20, 20)
    def get_hit(self, NPCS, amt = 10):
         self.health = max(0,self.health-amt)
         if self.health <= 0:
@@ -136,9 +149,11 @@ class Enemy: ## class define enemy NPCs
          if self.health <= 0:
            pass
    def detect_Check(self, player_pos):
-       if self.pos.distance_to(player_pos) > 500: return False
+       dist = self.pos.distance_to(player_pos)
+       if dist > 600: return False
        dir = (player_pos - self.pos).normalize()
-       return self.dir.dot(dir) >= 0.5 
+       dist = self.pos.distance_to(player_pos)  
+       return dist/self.dir.dot(dir) < 400
    def draw(self, screen):
        pygame.draw.rect(screen, (255, 0, 255), (self.pos.x - camera_x, self.pos.y - camera_y, 20, 20))
    def fsm(self, player):
@@ -169,6 +184,10 @@ class Enemy: ## class define enemy NPCs
 
 
 
+
+
+
+
    def _choose_goal(self, player, maze):
        if self.current_state == "Wander": # random tile
            if self.current_state == "Wander":
@@ -181,6 +200,8 @@ class Enemy: ## class define enemy NPCs
                return None
 
 
+
+
        elif self.current_state == "Chase":
            return player.pos
        elif self.current_state == "Flee":
@@ -189,6 +210,10 @@ class Enemy: ## class define enemy NPCs
                return self.pos + d.normalize()*400
            return self.pos + pygame.math.Vector2(400, 0)
        return None
+
+
+
+
 
 
 
@@ -204,9 +229,19 @@ class Enemy: ## class define enemy NPCs
        if d.length() <= speed * dt:
            self.pos = pygame.math.Vector2(target)
            self.path_index += 1
+           self.hitbox = pygame.Rect(self.pos.x - 10, self.pos.y - 10, 20, 20)
        else:
            self.dir = d.normalize()
            self.pos += self.dir * speed * dt
+           self.hitbox = pygame.Rect(self.pos.x - 10, self.pos.y - 10, 20, 20)
+
+
+
+
+
+
+
+
 
 
 
@@ -226,9 +261,10 @@ class Player: ## define player
      self.stamina = 100 #make subtract by 2 for every second shift is held
      self.current_surface = "grass"
      self.garlic_timer = 0
-   # self.cam =
+     self.dmg_cd = 100
  def get_hit(self, amount = 10):
      self.health = max(0,self.health - amount)
+     self.dmg_cd = 20
  def player_input(self, keys, dt):
      direction = pygame.math.Vector2(0, 0)
      if keys[pygame.K_w]: direction.y -= 1
@@ -244,17 +280,17 @@ class Player: ## define player
          else:
              self.stamina = min(100,self.stamina+30*dt)
          self.Walk(dt, speed_adjust)
-    
+   
  def Walk(self, dt, s_a):
      terrains = {"grass": 1.0, "mud": 0.6, "water": 0.4}
      terrain_speed_mult = terrains.get(self.current_surface)
-    
+   
      self.pos.x += self.dir.x*self.speed*terrain_speed_mult*s_a*dt
      self.update_surface()
      if self.current_surface == "rock":
       self.pos.x -= self.dir.x*self.speed*terrain_speed_mult*s_a*dt
       self.update_surface()
-    
+   
      self.pos.y += self.dir.y*self.speed*terrain_speed_mult*s_a*dt
      self.update_surface()
      if self.current_surface == "rock":
@@ -283,9 +319,7 @@ class Player: ## define player
      self.update_surface()
      self.hitbox.left = self.pos.x - 5
      self.hitbox.top = self.pos.y - 10
-
-
-
+     self.dmg_cd -= 1
 
 # placeholders:
 class MazeGen:
@@ -300,14 +334,10 @@ class MazeGen:
            (-1,  1, math.sqrt(2)),
            (-1, -1, math.sqrt(2)),
        ]               #all the moves that can be taken
-
-
    def convert_to_tile(self, x, y): # helper methods to convert between world/tile
        return int(x//TILE_SIZE), int(y//TILE_SIZE)
    def convert_from_tile(self, tx, ty):
        return pygame.math.Vector2(tx*TILE_SIZE + TILE_SIZE/2,ty*TILE_SIZE + TILE_SIZE/2)
-
-
    def terrain_at(self, tx, ty):
        if not (0 <= tx < NOISE_W and 0 <= ty < NOISE_H):
            return "rock"
@@ -318,41 +348,24 @@ class MazeGen:
        if rgb == TERRAIN_COLORS["water"]: return "water"
        if rgb == TERRAIN_COLORS["mud"]:   return "mud"
        return "grass"
-
-
-
-
    def not_rock(self, tx, ty):
        return self.terrain_at(tx, ty) != "rock"
    def step_cost(self, tx, ty): # scalars from inverse of speed mult
        t = self.terrain_at(tx, ty)
        return {"grass": 1.0, "mud": 1 / 0.6, "water": 1 / 0.4}.get(t, float("inf"))
-
-
-
-
    def heuristic(self, a, b): #distances and diagonal too
        dx = abs(a[0] - b[0])
        dy = abs(a[1] - b[1])
        return max(dx, dy) + (math.sqrt(2) - 1)*min(dx, dy)
-
-
-
-
        #find path is search method vvvvv
    def find_path(self, start_env, aim_env): #returns a lost of vectors. first is next to start, and the last is the tile it's aiming for
        start = self.convert_to_tile(start_env.x, start_env.y)
        aim  = self.convert_to_tile(aim_env.x,  aim_env.y)
 
-
-
-
        if start == aim:
            return [self.convert_from_tile(aim[0], aim[1])]
        if not self.not_rock(*start) or not self.not_rock(aim[0], aim[1]):
            return []
-
-
 
 
        open_heap = [(0.0, 0, start)]
@@ -361,17 +374,11 @@ class MazeGen:
        closed=set()
        counter = 1
 
-
-
-
        while open_heap:
            current = heapq.heappop(open_heap)[2]
            if current in closed:
                continue
            closed.add(current)
-
-
-
 
            if current == aim: #reconstruct by going came_from back from aim
                path = []
@@ -380,9 +387,6 @@ class MazeGen:
                    current = came_from[current]
                path.reverse()
                return path
-
-
-
 
            cx, cy = current
            for dx, dy, base_cost in self.moves:
@@ -393,15 +397,9 @@ class MazeGen:
                    if not self.not_rock(cx + dx, cy) or not self.not_rock(cx, cy + dy):
                        continue
 
-
-
-
                neighbor = (nx, ny)
                if neighbor in closed:
                    continue
-
-
-
 
                tentative_g = g_score[current] + base_cost * self.step_cost(nx, ny)
                if tentative_g < g_score.get(neighbor, float("inf")):
@@ -412,14 +410,10 @@ class MazeGen:
                    counter += 1
 
 
-
-
        return [] # if nothing found return empty list
-
 
    def draw(self, screen):
        pass #draw grid
-
 
 class Markov:
     def __init__(self, order=4, sample_int=0.15, m=4):
@@ -430,7 +424,6 @@ class Markov:
         self.scores = {i: {} for i in range(1, order + 1)}
         self.prev_tile = None
         self.sample_timer = 0
-
 
     def recordMoves(self, player_pos, maze, dt):
         self.sample_timer += dt
@@ -453,8 +446,6 @@ class Markov:
         self.corpus.append(move)
         if len(self.corpus) > 500:
             self.corpus = self.corpus[-500:]
-
-
     def _get_dist(self, corpus): # tries longer context then goes down
         for order in range(min(self.order, len(corpus)), 0, -1):
             context = tuple(corpus[-order:])
@@ -463,8 +454,6 @@ class Markov:
                 total = sum(arr.values())
                 return {m: c/total for m, c in arr.items()}
         return None
-
-
     def returnPredictions(self, player_pos, maze): #top 10 sorted
         if not self.corpus:
             return []
@@ -489,11 +478,6 @@ class Markov:
         results.sort(key=lambda x: -x[1])
         return results[:10]
 
-
-
-
-
-
 class Item:
  def __init__(self, x, y, item_type):
      self.pos = pygame.math.Vector2(x,y)
@@ -502,9 +486,6 @@ class Item:
  def draw(self, screen):
      color = ((255, 255, 0) if self.type == "bread" else (0, 255, 255))
      pygame.draw.circle(screen, color, (int(self.pos.x - camera_x), int(self.pos.y - camera_y)), 8)
-
-
-
 
 class Boss:
     def __init__(self, x, y):
@@ -516,7 +497,6 @@ class Boss:
         self.repath_timer = 0
         self.predicted_tile = None
         self.dir = pygame.math.Vector2(1, 0)
-
 
     def update(self, player, maze, predictor, dt):
         self.repath_timer -= dt
@@ -540,7 +520,6 @@ class Boss:
         if self.pos.distance_to(player.pos) < 40:
             player.get_hit(30*dt)
 
-
     def _follow_path(self, dt):
         if not self.path or self.path_index >= len(self.path):
             return
@@ -560,33 +539,17 @@ class Boss:
                          (self.pos.x - camera_x, self.pos.y - camera_y, 50, 50)) # replace with sprite
 
 
-
-
-
-
 ## main loop:
 Clock = pygame.time.Clock()
 Font = pygame.font.SysFont("Arial", 24)
-
-
-
-
 camera_x = 0
 camera_y = 0
-
-
-
-
 running = True
 debug_mode = False
 game_over = False
 game_won = False
 night_time = 120.0 # im adding a key to spawn boss in the debug menu
 dracula_spawned = False
-
-
-
-
 maze = MazeGen()
 while True:
  player = Player(random.randint(100,WIDTH*MAP_SIZE-100),random.randint(100,HEIGHT*MAP_SIZE-100), 100)
@@ -605,17 +568,9 @@ for i in range(100):
            break
 items = []
 boss = None
-
-
-
-
 # test items
 items.append(Item(200, 200, "bread"))
 items.append(Item(300, 300, "quiver"))
-
-
-
-
 # main loop!!
 while running:
  # dt is seconds btw bcs clock tick does ms
@@ -634,15 +589,10 @@ while running:
          elif event.key == pygame.K_b and debug_mode and not boss:
              boss = Boss(player.pos.x + 200, player.pos.y + 200)
              dracula_spawned = True
-
-
-         
+        
  keys = pygame.key.get_pressed()
  if not game_over and not game_won:
      player.player_input(keys, dt) # need to change player to use this
-
-
-
 
  if not (game_over or game_won):
      night_time -= dt
@@ -654,11 +604,9 @@ while running:
          dracula_spawned = True
      
      player.update() # surface and terrain interaction
-    
+   
      camera_x = max(0,min(player.pos.x - WIDTH//2, WIDTH*MAP_SIZE-WIDTH))
      camera_y = max(0,min(player.pos.y - HEIGHT//2, HEIGHT*MAP_SIZE-HEIGHT))
-
-
 
 
      predictor.recordMoves(player.pos, maze, dt)
@@ -674,18 +622,9 @@ while running:
          if boss.hp <= 0:
              game_won = True
 
-
-
-
 # We once sang/ Retrograde, we'd shake the frame of your car/
 # Now I know your name, but not who you are/ It's all okay/
 # There ain't a drop of bad blood, it's all my love
-
-
-
-
-
-
 
 
 ##########    rendering:
@@ -696,15 +635,13 @@ while running:
      item.draw(screen)
  for enemy in enemies:
      enemy.draw(screen)
+     if player.hitbox.colliderect(enemy.hitbox) and player.dmg_cd <= 0:
+            player.get_hit()
  if boss:
      boss.draw(screen)
  player.draw()
  screen.blit(Font.render(f"Time until dawn: {max(0, int(night_time))}s", True, (255, 255, 255)), (10, 10))
  screen.blit(Font.render(f"HP: {player.health}", True, (255, 255, 255)), (10, 40))
-
-
-
-
  if debug_mode:
      debug_text = Font.render("debug mode activated (F1)", True, (255, 255, 255))
      player_info = Font.render(f"Current Terrain: {player.current_surface}", True, (255, 255, 255))
@@ -712,15 +649,12 @@ while running:
      screen.blit(player_info, (10, 100))
             # # a* visual!!
 
-
-
-
      for enemy in enemies:
            if len(enemy.path) >= 2:
                points = [(int(p.x - camera_x), int(p.y - camera_y)) for p in enemy.path]
                pygame.draw.lines(screen, (255, 0, 0), False, points, 2)
            screen.blit(Font.render(enemy.current_state, True, (255, 255, 0)), (enemy.pos.x - camera_x, enemy.pos.y - camera_y - 22))
-
+           
 
      if boss:
          if len(boss.path) >= 2:
@@ -732,19 +666,10 @@ while running:
              pygame.draw.rect(screen, (255, 255, 0), (wx, wy, TILE_SIZE, TILE_SIZE), 2)
              screen.blit(Font.render("AMBUSH", True, (255, 255, 0)),
                          (wx, wy - 18))
-
-
-
-
  if game_over:
-     screen.blit(Font.render("Game Over. (r.i.p. lmao)", True, (255, 0, 0)), (WIDTH//2 - 150, HEIGHT//2))
+     screen.blit(Font.render("Game Over. (r.i.p. lmao)", True, (255, 255, 255), (0, 0, 0)), (WIDTH//2 - 150, HEIGHT//2))
  elif game_won:
      screen.blit(Font.render("Dracula hath been slain. good job mh", True, (0, 255, 0)), (WIDTH//2 - 200, HEIGHT//2))
-
-
-
-
  pygame.display.flip()
-
-
 pygame.quit()
+
