@@ -87,7 +87,7 @@ SCALE = 300.0
 OCTAVES = random.randint(2, 3)
 PERSISTENCE = random.randint(3, 5) / 10
 LACUNARITY = random.randint(1, 3)
-TILE_SIZE=40
+TILE_SIZE=10
 NOISE_W= WIDTH*MAP_SIZE//TILE_SIZE
 NOISE_H= HEIGHT*MAP_SIZE//TILE_SIZE
 
@@ -99,8 +99,8 @@ def noise_surface():
        for x in range(NOISE_W):
            n = pnoise2(x*TILE_SIZE/SCALE, y*TILE_SIZE/SCALE, octaves=OCTAVES, persistence=PERSISTENCE, lacunarity=LACUNARITY)
            if n < -0.3:   type = TERRAIN_COLORS["water"]
-           elif n < -0.1: type = TERRAIN_COLORS["mud"]
-           elif n < 0.3:  type = TERRAIN_COLORS["grass"]
+           elif n < -0.11: type = TERRAIN_COLORS["mud"]
+           elif n < 0.31:  type = TERRAIN_COLORS["grass"]
            else:          type = TERRAIN_COLORS["rock"]
            arr[x, y] = type
    for i in range(NOISE_W):
@@ -597,8 +597,8 @@ predictor = Markov()
 enemies = []
 for i in range(100):
    while True:
-       x_i = player.pos.x + 100 #random.randint(100, WIDTH*MAP_SIZE - 100)
-       y_i = player.pos.y + 100#TEMPORARY COMMENT FOR DEBUG#random.randint(100, HEIGHT*MAP_SIZE - 100)
+       x_i = random.randint(100, WIDTH*MAP_SIZE - 100)
+       y_i = random.randint(100, HEIGHT*MAP_SIZE - 100)
        colour = noise.get_at((x_i, y_i))
        if (colour.r, colour.g, colour.b) != TERRAIN_COLORS["rock"]:
            enemies.append(Enemy(x_i, y_i, 30))
