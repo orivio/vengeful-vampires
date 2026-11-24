@@ -263,7 +263,7 @@ class Player: ## define player
      for enemy in others:
          dist = abs(self.pos.distance_to(enemy.pos))
          fov = (enemy.pos - self.pos).normalize()
-         if dist <= range and (dist/self.dir.dot(fov) < 400):
+         if dist <= self.range and (dist/self.dir.dot(fov) < 400):
              self.attack(enemy)
  def attack(self, other):
      other.health -= self.dmg
@@ -562,7 +562,8 @@ while running:
      for enemy in enemies:
          enemy.fsm(player)
          enemy.track(player, dt, maze) # add enemy death
-     
+         if enemy.health <= 0:
+             enemies.remove(enemy)
      if player.health <= 0:
          game_over = True
      if boss:
