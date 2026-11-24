@@ -1,32 +1,11 @@
-# #add enemy damage (boss damage alr works)
-# # balance enemy damage
 # # change boss/enemy speed by speed_terrain_mult or wtv its called
 # #   ^^^^^maybe just do for boss as he’s a vampire but normal enemies are bats?
-
-
-
-
-
-
-
-
-# # implement damage to enemies and garlic and allat
-
-
-
-
-
-
-
-
+    # # i think it's better to give them to the boss, but this is a low priority problem
+# # BY FAR THE LARGEST PRIORITY: implement damage to enemies and garlic and allat
 # # make the win-condition actually trigger
-# # make boss actually spawn (he spawns if you press b in debug menu but he needs to trigger in normal gameplay)
-
-
-
-
 # # art: sprites
 # # art: win/loss screens (do this last once everything is done)
+# # try to debug boss taking forever to start moving
 
 
 import pygame
@@ -95,9 +74,6 @@ TILE_SIZE=10
 NOISE_W= WIDTH*MAP_SIZE//TILE_SIZE
 NOISE_H= HEIGHT*MAP_SIZE//TILE_SIZE
 
-
-
-
 def noise_surface():
    small = pygame.Surface((NOISE_W, NOISE_H))
    arr = pygame.PixelArray(small)
@@ -126,9 +102,7 @@ def noise_surface():
    del arr
    return pygame.transform.scale(small, (WIDTH*MAP_SIZE, HEIGHT*MAP_SIZE))
 
-
 noise = noise_surface()
-
 
 class Enemy: ## class define enemy NPCs
    def __init__(self,x, y, hp):
@@ -145,9 +119,6 @@ class Enemy: ## class define enemy NPCs
         self.health = max(0,self.health-amt)
         if self.health <= 0:
              NPCS.remove(self)
-   def check_is_dead(self):
-         if self.health <= 0:
-           pass
    def detect_Check(self, player_pos):
        dist = self.pos.distance_to(player_pos)
        if dist > 600: return False
@@ -180,14 +151,6 @@ class Enemy: ## class define enemy NPCs
                self.path_index = 0
                self.path_timer = 0.5 if self.current_state == "Chase" else 2.0
        self._follow_path(dt)
-
-
-
-
-
-
-
-
    def _choose_goal(self, player, maze):
        if self.current_state == "Wander": # random tile
            if self.current_state == "Wander":
@@ -198,10 +161,6 @@ class Enemy: ## class define enemy NPCs
                if maze.not_rock(xi, yi):
                    return maze.convert_from_tile(xi, yi)
                return None
-
-
-
-
        elif self.current_state == "Chase":
            return player.pos
        elif self.current_state == "Flee":
@@ -210,14 +169,6 @@ class Enemy: ## class define enemy NPCs
                return self.pos + d.normalize()*400
            return self.pos + pygame.math.Vector2(400, 0)
        return None
-
-
-
-
-
-
-
-
    def _follow_path(self, dt):
        if not self.path or self.path_index >= len(self.path):
            self.path = []
@@ -235,21 +186,6 @@ class Enemy: ## class define enemy NPCs
            self.pos += self.dir * speed * dt
            self.hitbox = pygame.Rect(self.pos.x - 10, self.pos.y - 10, 20, 20)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #player_movement_tracking_MDP = zeros(9,9,9,9) # this is for 3 context and 2-step prediction. the first step prediction is not relevant though as it only aims two steps ahead anyway, so only the final lcoation needs to be recorded (e.g, left,right and nothing would be recorded the same over 2 steps)
 class Player: ## define player
  def __init__(self, x, y, hp):
@@ -262,10 +198,12 @@ class Player: ## define player
      self.current_surface = "grass"
      self.garlic_timer = 0
      self.dmg_cd = 100
+     self.dmg = 50
+     self.range = 40
  def get_hit(self, amount = 10):
      self.health = max(0,self.health - amount)
      self.dmg_cd = 20
- def player_input(self, keys, dt):
+ def player_input(self, keys, dt, enemies):
      direction = pygame.math.Vector2(0, 0)
      if keys[pygame.K_w]: direction.y -= 1
      if keys[pygame.K_s]: direction.y += 1
@@ -280,6 +218,7 @@ class Player: ## define player
          else:
              self.stamina = min(100,self.stamina+30*dt)
          self.Walk(dt, speed_adjust)
+     if keys[pygame.K_f]: self.detect(enemies)
    
  def Walk(self, dt, s_a):
      terrains = {"grass": 1.0, "mud": 0.6, "water": 0.4}
@@ -300,7 +239,7 @@ class Player: ## define player
      pass
  def draw(self):
       pygame.draw.rect(screen, (255, 255, 255), (self.hitbox.x - camera_x, self.hitbox.y - camera_y, self.hitbox.width, self.hitbox.height))
- def update_surface(self): #could use some work, like implementing the hitbox instead of player coords
+ def update_surface(self): 
      temp = noise.get_at((int(self.pos.x), int(self.pos.y)))
      match ((temp.r, temp.g, temp.b)):
          case ((84, 86, 89)):
@@ -320,6 +259,15 @@ class Player: ## define player
      self.hitbox.left = self.pos.x - 5
      self.hitbox.top = self.pos.y - 10
      self.dmg_cd -= 1
+ def detect(self, others):
+     for enemy in others:
+         dist = abs(self.pos.distance_to(enemy.pos))
+         fov = (enemy.pos - self.pos).normalize()
+         if dist <= range and (dist/self.dir.dot(fov) < 400):
+             self.attack(enemy)
+ def attack(self, other):
+     other.health -= self.dmg
+    
 
 # placeholders:
 class MazeGen:
@@ -416,7 +364,7 @@ class MazeGen:
        pass #draw grid
 
 class Markov:
-    def __init__(self, order=4, sample_int=0.15, m=4):
+    def __init__(self, order=4, sample_int=0.06, m=4):
         self.order = order
         self.sample_int = sample_int
         self.min_num = m
@@ -592,15 +540,15 @@ while running:
         
  keys = pygame.key.get_pressed()
  if not game_over and not game_won:
-     player.player_input(keys, dt) # need to change player to use this
+     player.player_input(keys, dt, enemies) # need to change player to use this
 
  if not (game_over or game_won):
      night_time -= dt
      if night_time <= 0 and not dracula_spawned:
-         print("Come on. You idiots haven't caught that human yet!?")
+         print("You idiots haven't caught that human yet!?")
          print("I'm taking matters into my own hands.")
          print("Dracula approaches as the sun rises.")
-         boss = Boss(player.pos.x + 100, player.pos.y + 100) #spawn boss (we should make a random spawning method)
+         boss = Boss(player.pos.x + 100 + random.randint(-200, 200), player.pos.y + 100 + random.randint(-200, 200)) #spawn boss (we should make a random spawning method)
          dracula_spawned = True
      
      player.update() # surface and terrain interaction
@@ -613,7 +561,7 @@ while running:
  
      for enemy in enemies:
          enemy.fsm(player)
-         enemy.track(player, dt, maze)
+         enemy.track(player, dt, maze) # add enemy death
      
      if player.health <= 0:
          game_over = True
@@ -672,4 +620,3 @@ while running:
      screen.blit(Font.render("Dracula hath been slain. good job mh", True, (0, 255, 0)), (WIDTH//2 - 200, HEIGHT//2))
  pygame.display.flip()
 pygame.quit()
-
