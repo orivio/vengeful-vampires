@@ -69,7 +69,7 @@ SCALE = 300.0
 OCTAVES = random.randint(2, 3)
 PERSISTENCE = random.randint(3, 5) / 10
 LACUNARITY = random.randint(1, 3)
-TILE_SIZE=10
+TILE_SIZE=25
 NOISE_W= WIDTH*MAP_SIZE//TILE_SIZE
 NOISE_H= HEIGHT*MAP_SIZE//TILE_SIZE
 
@@ -112,103 +112,103 @@ class Enemy: ## class define enemy NPCs  ##  loads sprites once now rather than 
         pygame.image.load(r"sprites/vampire png/sideways vampire right.png").convert_alpha(), (50, 50))
     back_sprite = pygame.transform.scale(
         pygame.image.load(r"sprites/vampire png/vampire back.png").convert_alpha(), (50, 50))
-   def __init__(self,x, y, hp):
-       self.pos = pygame.math.Vector2(x, y)
-       self.dir = pygame.math.Vector2(1, 0)
-       self.path = []
-       self.path_index = 0
-       self.path_timer = 0
-       self.health = hp
-       self.current_state = "Wander"
-       self.states = ["Wander", "Chase", "Flee"]
-       self.hitbox = pygame.Rect(x - 10, y - 10, 20, 20)
-       # sprites ugggghhhh
-       self.current_sprite = Enemy.forward_sprite
-   def get_hit(self, NPCS, amt = 10):
-        self.health = max(0,self.health-amt)
-        if self.health <= 0:
-             NPCS.remove(self)
-   def detect_Check(self, player_pos):
-       dist = self.pos.distance_to(player_pos)
-       if dist > 600:
-           return False
-       if dist < 0.01:
-            return True
-       dot = self.dir.dot((player_pos - self.pos).normalize())
-       if dot <= 0.01:
-           return False
-       return dist / dot < 400
-   def draw(self, screen):
-       #pygame.draw.rect(screen, (255, 0, 255), (self.pos.x - camera_x, self.pos.y - camera_y, 20, 20))
-       screen.blit(self.current_sprite, (self.pos.x - camera_x - 15, self.pos.y - camera_y - 23))
-       self.sprite_upd()
-   def fsm(self, player):
-     Old = self.current_state
-     if player.garlic_timer > 0:
-          self.current_state = "Flee"
-     elif self.current_state == "Flee":
-          self.current_state = "Wander"
-     elif self.current_state == "Wander":
-          if self.detect_Check(player.pos):
-              self.current_state = "Chase"
-     elif self.current_state == "Chase":
-          if not self.detect_Check(player.pos):
-              self.current_state = "Wander"
-     if Old != self.current_state:
-          self.path_timer=0
-          self.path = []
-   def track(self, player, dt, maze):
-       self.path_timer -= dt
-       if (not self.path) or self.path_timer <= 0:
-           goal = self._choose_goal(player, maze)
-           if goal is not None:
-               self.path = maze.find_path(self.pos, goal)
-               self.path_index = 0
-               self.path_timer = 0.5 if self.current_state == "Chase" else 2.0
-       self._follow_path(dt)
-   def _choose_goal(self, player, maze):
-       if self.current_state == "Wander": # random tile
-           wx, wy = maze.convert_to_tile(self.pos.x, self.pos.y)
-           for _ in range(10):
-               xi = wx + random.randint(-8, 8)
-               yi = wy + random.randint(-8, 8)
-               if maze.not_rock(xi, yi):
-                   return maze.convert_from_tile(xi, yi)
-           return None
-       elif self.current_state == "Chase":
-           return player.pos
-       elif self.current_state == "Flee":
-           d = self.pos - player.pos
-           if d.length_squared() > 0:
-               return self.pos + d.normalize()*400
-           return self.pos + pygame.math.Vector2(400, 0)
-       return None
-   def _follow_path(self, dt):
-       if not self.path or self.path_index >= len(self.path):
+    def __init__(self,x, y, hp):
+        self.pos = pygame.math.Vector2(x, y)
+        self.dir = pygame.math.Vector2(1, 0)
+        self.path = []
+        self.path_index = 0
+        self.path_timer = 0
+        self.health = hp
+        self.current_state = "Wander"
+        self.states = ["Wander", "Chase", "Flee"]
+        self.hitbox = pygame.Rect(x - 10, y - 10, 20, 20)
+        # sprites ugggghhhh
+        self.current_sprite = Enemy.forward_sprite
+    def get_hit(self, NPCS, amt = 10):
+         self.health = max(0,self.health-amt)
+         if self.health <= 0:
+              NPCS.remove(self)
+    def detect_Check(self, player_pos):
+        dist = self.pos.distance_to(player_pos)
+        if dist > 600:
+            return False
+        if dist < 0.01:
+             return True
+        dot = self.dir.dot((player_pos - self.pos).normalize())
+        if dot <= 0.01:
+            return False
+        return dist / dot < 400
+    def draw(self, screen):
+        #pygame.draw.rect(screen, (255, 0, 255), (self.pos.x - camera_x, self.pos.y - camera_y, 20, 20))
+        screen.blit(self.current_sprite, (self.pos.x - camera_x - 15, self.pos.y - camera_y - 23))
+        self.sprite_upd()
+    def fsm(self, player):
+      Old = self.current_state
+      if player.garlic_timer > 0:
+           self.current_state = "Flee"
+      elif self.current_state == "Flee":
+           self.current_state = "Wander"
+      elif self.current_state == "Wander":
+           if self.detect_Check(player.pos):
+               self.current_state = "Chase"
+      elif self.current_state == "Chase":
+           if not self.detect_Check(player.pos):
+               self.current_state = "Wander"
+      if Old != self.current_state:
+           self.path_timer=0
            self.path = []
-           self.path_index = 0
-           return
-       target = self.path[self.path_index]
-       d = target-self.pos
-       speed = {"Wander": 160, "Chase": 205, "Flee": 250}[self.current_state]
-       if d.length() <= speed * dt:
-           self.pos = pygame.math.Vector2(target)
-           self.path_index += 1
-           self.hitbox = pygame.Rect(self.pos.x - 10, self.pos.y - 10, 20, 20)
-       else:
-           self.dir = d.normalize()
-           self.pos += self.dir * speed * dt
-           self.hitbox = pygame.Rect(self.pos.x - 10, self.pos.y - 10, 20, 20)
-   def sprite_upd(self):
-       temp = self.dir.normalize()
-       if temp.y > 0:
-           self.current_sprite = self.forward_sprite
-       elif temp.y < 0:
-           self.current_sprite = self.back_sprite
-       if temp.x > 0:
-           self.current_sprite = self.right_sprite
-       elif temp.x < 0:
-            self.current_sprite = self.left_sprite
+    def track(self, player, dt, maze):
+        self.path_timer -= dt
+        if (not self.path) or self.path_timer <= 0:
+            goal = self._choose_goal(player, maze)
+            if goal is not None:
+                self.path = maze.find_path(self.pos, goal)
+                self.path_index = 0
+                self.path_timer = 0.5 if self.current_state == "Chase" else 2.0
+        self._follow_path(dt)
+    def _choose_goal(self, player, maze):
+        if self.current_state == "Wander": # random tile
+            wx, wy = maze.convert_to_tile(self.pos.x, self.pos.y)
+            for _ in range(10):
+                xi = wx + random.randint(-8, 8)
+                yi = wy + random.randint(-8, 8)
+                if maze.not_rock(xi, yi):
+                    return maze.convert_from_tile(xi, yi)
+            return None
+        elif self.current_state == "Chase":
+            return player.pos
+        elif self.current_state == "Flee":
+            d = self.pos - player.pos
+            if d.length_squared() > 0:
+                return self.pos + d.normalize()*400
+            return self.pos + pygame.math.Vector2(400, 0)
+        return None
+    def _follow_path(self, dt):
+        if not self.path or self.path_index >= len(self.path):
+            self.path = []
+            self.path_index = 0
+            return
+        target = self.path[self.path_index]
+        d = target-self.pos
+        speed = {"Wander": 160, "Chase": 205, "Flee": 250}[self.current_state]
+        if d.length() <= speed * dt:
+            self.pos = pygame.math.Vector2(target)
+            self.path_index += 1
+            self.hitbox = pygame.Rect(self.pos.x - 10, self.pos.y - 10, 20, 20)
+        else:
+            self.dir = d.normalize()
+            self.pos += self.dir * speed * dt
+            self.hitbox = pygame.Rect(self.pos.x - 10, self.pos.y - 10, 20, 20)
+    def sprite_upd(self):
+        temp = self.dir.normalize()
+        if temp.y > 0:
+            self.current_sprite = self.forward_sprite
+        elif temp.y < 0:
+            self.current_sprite = self.back_sprite
+        if temp.x > 0:
+            self.current_sprite = self.right_sprite
+        elif temp.x < 0:
+             self.current_sprite = self.left_sprite
 
 #player_movement_tracking_MDP = zeros(9,9,9,9) # this is for 3 context and 2-step prediction. the first step prediction is not relevant though as it only aims two steps ahead anyway, so only the final lcoation needs to be recorded (e.g, left,right and nothing would be recorded the same over 2 steps)
 class Player: ## define player
@@ -594,8 +594,11 @@ boss = None
 #items.append(Item(300, 300, "quiver"))
 # main loop!!
 async def main():
+ 
  global running, debug_mode, game_over, game_won
  global night_time, dracula_spawned, boss, enemies, camera_x, camera_y
+ 
+ 
  while running:
   # dt is seconds btw bcs clock tick does ms
   dt = Clock.tick(60)/1000.0
