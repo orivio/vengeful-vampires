@@ -206,7 +206,7 @@ class Enemy: ## class define enemy NPCs
        if temp.x > 0:
            self.current_sprite = self.right_sprite
        elif temp.x < 0:
-            self.current_sprite = self.left_sprite       
+            self.current_sprite = self.left_sprite
 
 #player_movement_tracking_MDP = zeros(9,9,9,9) # this is for 3 context and 2-step prediction. the first step prediction is not relevant though as it only aims two steps ahead anyway, so only the final lcoation needs to be recorded (e.g, left,right and nothing would be recorded the same over 2 steps)
 class Player: ## define player
@@ -221,8 +221,8 @@ class Player: ## define player
      self.garlic_timer = 0
      self.dmg_cd = 100
      self.dmg = 10
-     self.range = 40
-     self.attack_cd = 50
+     self.range = 100
+     self.attack_cd = 5
      self.forward_sprite = pygame.image.load(r"sprites/player/player forward.png").convert_alpha()
      self.forward_sprite = pygame.transform.scale(self.forward_sprite, (50, 50))
      self.left_sprite = pygame.image.load(r"sprites/player/player left.png").convert_alpha()
@@ -260,7 +260,7 @@ class Player: ## define player
          self.Walk(dt, speed_adjust)
      if keys[pygame.K_f] and self.attack_cd <= 0:
          self.detect(enemies)
-         self.attack_cd = 50
+         self.attack_cd = 5
    
  def Walk(self, dt, s_a):
      terrains = {"grass": 1.0, "mud": 0.6, "water": 0.4}
@@ -307,8 +307,10 @@ class Player: ## define player
      for enemy in others:
          dist = abs(self.pos.distance_to(enemy.pos))
          fov = (enemy.pos - self.pos).normalize()
-         if dist <= self.range and (dist/self.dir.dot(fov) < 400):
-             self.attack(enemy)
+         direction = -self.dir
+         if self.dir.dot(fov) != 0:
+            if dist <= self.range and (dist/direction.dot(fov) < 400):
+                self.attack(enemy)
  def attack(self, other):
      other.health -= self.dmg
     
