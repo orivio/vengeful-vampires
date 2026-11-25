@@ -104,7 +104,15 @@ def noise_surface():
 
 noise = noise_surface()
 
-class Enemy: ## class define enemy NPCs
+class Enemy: ## class define enemy NPCs  ##  loads sprites once now rather than for each enemy instance
+    forward_sprite = pygame.transform.scale(
+        pygame.image.load(r"sprites/vampire png/vampire forward.png").convert_alpha(), (50, 50))
+    left_sprite = pygame.transform.scale(
+        pygame.image.load(r"sprites/vampire png/sideways vampire left.png").convert_alpha(), (50, 50))
+    right_sprite = pygame.transform.scale(
+        pygame.image.load(r"sprites/vampire png/sideways vampire right.png").convert_alpha(), (50, 50))
+    back_sprite = pygame.transform.scale(
+        pygame.image.load(r"sprites/vampire png/vampire back.png").convert_alpha(), (50, 50))
    def __init__(self,x, y, hp):
        self.pos = pygame.math.Vector2(x, y)
        self.dir = pygame.math.Vector2(1, 0)
@@ -116,25 +124,21 @@ class Enemy: ## class define enemy NPCs
        self.states = ["Wander", "Chase", "Flee"]
        self.hitbox = pygame.Rect(x - 10, y - 10, 20, 20)
        # sprites ugggghhhh
-       self.forward_sprite = pygame.image.load(r"sprites/vampire png/vampire forward.png").convert_alpha()
-       self.forward_sprite = pygame.transform.scale(self.forward_sprite, (50, 50))
-       self.left_sprite = pygame.image.load(r"sprites/vampire png/sideways vampire left.png").convert_alpha()
-       self.left_sprite = pygame.transform.scale(self.left_sprite, (50, 50))
-       self.right_sprite = pygame.image.load(r"sprites/vampire png/sideways vampire right.png").convert_alpha()
-       self.right_sprite = pygame.transform.scale(self.right_sprite, (50, 50))
-       self.back_sprite = pygame.image.load(r"sprites/vampire png/vampire back.png").convert_alpha()
-       self.back_sprite = pygame.transform.scale(self.back_sprite, (50, 50))
-       self.current_sprite = self.forward_sprite
+       self.current_sprite = Enemy.forward_sprite
    def get_hit(self, NPCS, amt = 10):
         self.health = max(0,self.health-amt)
         if self.health <= 0:
              NPCS.remove(self)
    def detect_Check(self, player_pos):
        dist = self.pos.distance_to(player_pos)
-       if dist > 600: return False
-       dir = (player_pos - self.pos).normalize()
-       dist = self.pos.distance_to(player_pos)  
-       return dist/self.dir.dot(dir) < 400
+       if dist > 600:
+           return False
+       if dist < 0.01:
+            return True
+       dot = self.dir.dot((player_pos - self.pos).normalize())
+       if dot <= 0.01:
+           return False
+       return dist / dot < 400
    def draw(self, screen):
        #pygame.draw.rect(screen, (255, 0, 255), (self.pos.x - camera_x, self.pos.y - camera_y, 20, 20))
        screen.blit(self.current_sprite, (self.pos.x - camera_x - 15, self.pos.y - camera_y - 23))
@@ -165,14 +169,13 @@ class Enemy: ## class define enemy NPCs
        self._follow_path(dt)
    def _choose_goal(self, player, maze):
        if self.current_state == "Wander": # random tile
-           if self.current_state == "Wander":
-               wx, wy = maze.convert_to_tile(self.pos.x, self.pos.y)
-               for _ in range(10):
-                   xi = wx + random.randint(-8, 8)
-                   yi = wy + random.randint(-8, 8)
+           wx, wy = maze.convert_to_tile(self.pos.x, self.pos.y)
+           for _ in range(10):
+               xi = wx + random.randint(-8, 8)
+               yi = wy + random.randint(-8, 8)
                if maze.not_rock(xi, yi):
                    return maze.convert_from_tile(xi, yi)
-               return None
+           return None
        elif self.current_state == "Chase":
            return player.pos
        elif self.current_state == "Flee":
@@ -212,7 +215,7 @@ class Enemy: ## class define enemy NPCs
 class Player: ## define player
  def __init__(self, x, y, hp):
      self.pos = pygame.math.Vector2(x, y)
-     self.dir = pygame.math.Vector2(0, 0)
+     self.dir = pygame.math.Vector2(0, 1)
      self.health = hp
      self.hitbox = pygame.Rect(self.pos.x + 10, self.pos.y + 20, 20, 40)
      self.speed = 200
@@ -235,7 +238,7 @@ class Player: ## define player
  def get_hit(self, amount = 10):
      self.health = max(0,self.health - amount)
      self.dmg_cd = 20
- def player_input(self, keys, dt, enemies):
+ def player_input(self, keys, dt, enemies, boss=None):
      direction = pygame.math.Vector2(0, 0)
      if keys[pygame.K_w]:
          direction.y -= 1
@@ -259,8 +262,11 @@ class Player: ## define player
              self.stamina = min(100,self.stamina+30*dt)
          self.Walk(dt, speed_adjust)
      if keys[pygame.K_f] and self.attack_cd <= 0:
-         self.detect(enemies)
-         self.attack_cd = 5
+         targets = list(enemies)
+         if boss is not None:
+             targets.append(boss)
+         self.detect(targets)
+         self.attack_cd = 30
    
  def Walk(self, dt, s_a):
      terrains = {"grass": 1.0, "mud": 0.6, "water": 0.4}
@@ -303,16 +309,18 @@ class Player: ## define player
      self.hitbox.top = self.pos.y - 10
      self.dmg_cd -= 1
      self.attack_cd -= 1
- def detect(self, others):
-     for enemy in others:
-         dist = abs(self.pos.distance_to(enemy.pos))
-         fov = (enemy.pos - self.pos).normalize()
-         direction = -self.dir
-         if self.dir.dot(fov) != 0:
-            if dist <= self.range and (dist/direction.dot(fov) < 400):
-                self.attack(enemy)
+ def detect(self, targets):
+     for target in targets[:]:
+         dist = self.pos.distance_to(target.pos)
+         if dist > self.range:
+             continue
+         if self.dir.length_squared() == 0:
+             continue
+         fov = (target.pos-self.pos).normalize()
+         if self.dir.dot(fov) >= 0.5:
+             self.attack(target)
  def attack(self, other):
-     other.health -= self.dmg
+     other.health = max(0,other.health-self.dmg)
     
 
 # placeholders:
@@ -484,7 +492,7 @@ class Item:
 class Boss:
     def __init__(self, x, y):
         self.pos = pygame.math.Vector2(x, y)
-        self.hp = 450
+        self.health = 450
         self.state = "Ambush"
         self.path = []
         self.path_index = 0
@@ -529,13 +537,14 @@ class Boss:
         d = target - self.pos
         speed = 180
         if d.length() <= speed * dt:
+            self.dir = d.normalize() if d.length_squared() > 0 else self.dir # ternary in java still looks better imo
             self.pos = pygame.math.Vector2(target)
             self.path_index += 1
         else:
             self.dir = d.normalize()
             self.pos += self.dir*speed*dt
     def get_hit(self, dmg=10):
-        self.hp = max(0, self.hp - dmg)
+        self.health = max(0, self.health - dmg)
     def draw(self, screen):
        # pygame.draw.rect(screen, (200, 0, 0),(self.pos.x - camera_x, self.pos.y - camera_y, 50, 50)) # replace with sprite
         screen.blit(self.current_sprite, (self.pos.x - camera_x - 10, self.pos.y - camera_y - 15))
@@ -582,11 +591,10 @@ for i in range(100):
 items = []
 boss = None
 # test items
-items.append(Item(200, 200, "bread"))
-items.append(Item(300, 300, "quiver"))
+#items.append(Item(200, 200, "bread"))
+#items.append(Item(300, 300, "quiver"))
 # main loop!!
 while running:
- print(player.attack_cd)
  # dt is seconds btw bcs clock tick does ms
  dt = Clock.tick(60)/1000.0
  for event in pygame.event.get():
@@ -601,12 +609,19 @@ while running:
              # shooting method
           #   print("Player shot bow")
          elif event.key == pygame.K_b and debug_mode and not boss:
-             boss = Boss(player.pos.x + 200, player.pos.y + 200)
-             dracula_spawned = True
+             for i in range(50):
+                 xi = player.pos.x + random.randint(-300, 300)
+                 yi = player.pos.y + random.randint(-300, 300)
+                 c = noise.get_at((int(xi), int(yi)))
+                 if (c.r, c.g, c.b) != TERRAIN_COLORS["rock"]:
+                     boss = Boss(xi, yi)
+                     dracula_spawned = True
+                     break
+
         
  keys = pygame.key.get_pressed()
  if not game_over and not game_won:
-     player.player_input(keys, dt, enemies) # need to change player to use this
+     player.player_input(keys, dt, enemies, boss) # need to change player to use this
 
  if not (game_over or game_won):
      night_time -= dt
@@ -628,13 +643,12 @@ while running:
      for enemy in enemies:
          enemy.fsm(player)
          enemy.track(player, dt, maze) # add enemy death
-         if enemy.health <= 0:
-             enemies.remove(enemy)
+     enemies = [e for e in enemies if e.health>0]
      if player.health <= 0:
          game_over = True
      if boss:
          boss.update(player, maze, predictor, dt)
-         if boss.hp <= 0:
+         if boss.health <= 0:
              game_won = True
 
 # We once sang/ Retrograde, we'd shake the frame of your car/
