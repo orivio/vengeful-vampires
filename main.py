@@ -115,6 +115,16 @@ class Enemy: ## class define enemy NPCs
        self.current_state = "Wander"
        self.states = ["Wander", "Chase", "Flee"]
        self.hitbox = pygame.Rect(x - 10, y - 10, 20, 20)
+       # sprites ugggghhhh
+       self.forward_sprite = pygame.image.load(r"sprites/vampire png/vampire forward.png").convert_alpha()
+       self.forward_sprite = pygame.transform.scale(self.forward_sprite, (50, 50))
+       self.left_sprite = pygame.image.load(r"sprites/vampire png/sideways vampire left.png").convert_alpha()
+       self.left_sprite = pygame.transform.scale(self.left_sprite, (50, 50))
+       self.right_sprite = pygame.image.load(r"sprites/vampire png/sideways vampire right.png").convert_alpha()
+       self.right_sprite = pygame.transform.scale(self.right_sprite, (50, 50))
+       self.back_sprite = pygame.image.load(r"sprites/vampire png/vampire back.png").convert_alpha()
+       self.back_sprite = pygame.transform.scale(self.back_sprite, (50, 50))
+       self.current_sprite = self.forward_sprite
    def get_hit(self, NPCS, amt = 10):
         self.health = max(0,self.health-amt)
         if self.health <= 0:
@@ -126,7 +136,8 @@ class Enemy: ## class define enemy NPCs
        dist = self.pos.distance_to(player_pos)  
        return dist/self.dir.dot(dir) < 400
    def draw(self, screen):
-       pygame.draw.rect(screen, (255, 0, 255), (self.pos.x - camera_x, self.pos.y - camera_y, 20, 20))
+       #pygame.draw.rect(screen, (255, 0, 255), (self.pos.x - camera_x, self.pos.y - camera_y, 20, 20))
+       screen.blit(self.current_sprite, (self.pos.x - camera_x - 15, self.pos.y - camera_y - 23))
    def fsm(self, player):
      Old = self.current_state
      if player.garlic_timer > 0:
