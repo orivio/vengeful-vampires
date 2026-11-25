@@ -700,3 +700,4 @@ async def main():
      screen.blit(Font.render("Dracula hath been slain. good job mh", True, (0, 255, 0)), (WIDTH//2 - 200, HEIGHT//2))
  pygame.display.flip()
 pygame.quit()
+asyncio.run(main())
