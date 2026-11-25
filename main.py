@@ -138,6 +138,7 @@ class Enemy: ## class define enemy NPCs
    def draw(self, screen):
        #pygame.draw.rect(screen, (255, 0, 255), (self.pos.x - camera_x, self.pos.y - camera_y, 20, 20))
        screen.blit(self.current_sprite, (self.pos.x - camera_x - 15, self.pos.y - camera_y - 23))
+       self.sprite_upd()
    def fsm(self, player):
      Old = self.current_state
      if player.garlic_timer > 0:
@@ -196,6 +197,16 @@ class Enemy: ## class define enemy NPCs
            self.dir = d.normalize()
            self.pos += self.dir * speed * dt
            self.hitbox = pygame.Rect(self.pos.x - 10, self.pos.y - 10, 20, 20)
+   def sprite_upd(self):
+       temp = self.dir.normalize()
+       if temp.y > 0:
+           self.current_sprite = self.forward_sprite
+       elif temp.y < 0:
+           self.current_sprite = self.back_sprite
+       if temp.x > 0:
+           self.current_sprite = self.right_sprite
+       elif temp.x < 0:
+            self.current_sprite = self.left_sprite       
 
 #player_movement_tracking_MDP = zeros(9,9,9,9) # this is for 3 context and 2-step prediction. the first step prediction is not relevant though as it only aims two steps ahead anyway, so only the final lcoation needs to be recorded (e.g, left,right and nothing would be recorded the same over 2 steps)
 class Player: ## define player
