@@ -1,6 +1,3 @@
-# # can boss still spawn in rock or did i actually fix it ??
-# then if the game runs we can present
-
 #    **also need to add:**
 # (we can do this after presenting tho)
 
@@ -13,6 +10,7 @@ import pygame
 import math
 import random
 import heapq
+import asyncio
 
 _p = list(range(256))
 random.Random(0).shuffle(_p)
@@ -564,7 +562,7 @@ class Boss:
 
 ## main loop:
 Clock = pygame.time.Clock()
-Font = pygame.font.SysFont("Arial", 24)
+Font = pygame.font.Font(None, 28)
 camera_x = 0
 camera_y = 0
 running = True
@@ -595,7 +593,7 @@ boss = None
 #items.append(Item(200, 200, "bread"))
 #items.append(Item(300, 300, "quiver"))
 # main loop!!
-while running:
+async def main():
  # dt is seconds btw bcs clock tick does ms
  dt = Clock.tick(60)/1000.0
  for event in pygame.event.get():
