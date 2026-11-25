@@ -594,110 +594,115 @@ boss = None
 #items.append(Item(300, 300, "quiver"))
 # main loop!!
 async def main():
- # dt is seconds btw bcs clock tick does ms
- dt = Clock.tick(60)/1000.0
- for event in pygame.event.get():
-     if event.type == pygame.QUIT:
-         running = False
-     elif event.type == pygame.KEYDOWN:
-         if event.key == pygame.K_ESCAPE:
-             running = False
-         elif event.key == pygame.K_F1:
-             debug_mode = not debug_mode # debug mode switching
-         #elif event.key == pygame.K_f and not game_over and not game_won:
-             # shooting method
-          #   print("Player shot bow")
-         elif event.key == pygame.K_b and debug_mode and not boss:
-             for i in range(50):
-                 xi = player.pos.x + random.randint(-300, 300)
-                 yi = player.pos.y + random.randint(-300, 300)
-                 c = noise.get_at((int(xi), int(yi)))
-                 if (c.r, c.g, c.b) != TERRAIN_COLORS["rock"]:
-                     boss = Boss(xi, yi)
-                     dracula_spawned = True
-                     break
-
-        
- keys = pygame.key.get_pressed()
- if not game_over and not game_won:
-     player.player_input(keys, dt, enemies, boss) # need to change player to use this
-
- if not (game_over or game_won):
-     night_time -= dt
-     if night_time <= 0 and not dracula_spawned:
-         print("You idiots haven't caught that human yet!?")
-         print("I'm taking matters into my own hands.")
-         print("Dracula approaches as the sun rises.")
-         boss = Boss(player.pos.x + 100 + random.randint(-200, 200), player.pos.y + 100 + random.randint(-200, 200)) #spawn boss (we should make a random spawning method)
-         dracula_spawned = True
-     
-     player.update() # surface and terrain interaction
-   
-     camera_x = max(0,min(player.pos.x - WIDTH//2, WIDTH*MAP_SIZE-WIDTH))
-     camera_y = max(0,min(player.pos.y - HEIGHT//2, HEIGHT*MAP_SIZE-HEIGHT))
-
-
-     predictor.recordMoves(player.pos, maze, dt)
+ global running, debug_mode, game_over, game_won
+ global night_time, dracula_spawned, boss, enemies, camera_x, camera_y
+ while running:
+  # dt is seconds btw bcs clock tick does ms
+  dt = Clock.tick(60)/1000.0
+  for event in pygame.event.get():
+      if event.type == pygame.QUIT:
+          running = False
+      elif event.type == pygame.KEYDOWN:
+          if event.key == pygame.K_ESCAPE:
+              running = False
+          elif event.key == pygame.K_F1:
+              debug_mode = not debug_mode # debug mode switching
+          #elif event.key == pygame.K_f and not game_over and not game_won:
+              # shooting method
+           #   print("Player shot bow")
+          elif event.key == pygame.K_b and debug_mode and not boss:
+              for i in range(50):
+                  xi = player.pos.x + random.randint(-300, 300)
+                  yi = player.pos.y + random.randint(-300, 300)
+                  c = noise.get_at((int(xi), int(yi)))
+                  if (c.r, c.g, c.b) != TERRAIN_COLORS["rock"]:
+                      boss = Boss(xi, yi)
+                      dracula_spawned = True
+                      break
+      pass
  
-     for enemy in enemies:
-         enemy.fsm(player)
-         enemy.track(player, dt, maze) # add enemy death
-     enemies = [e for e in enemies if e.health>0]
-     if player.health <= 0:
-         game_over = True
-     if boss:
-         boss.update(player, maze, predictor, dt)
-         if boss.health <= 0:
-             game_won = True
-
-# We once sang/ Retrograde, we'd shake the frame of your car/
-# Now I know your name, but not who you are/ It's all okay/
-# There ain't a drop of bad blood, it's all my love
-
-
-##########    rendering:
- screen.fill((0, 0, 0))
- maze.draw(screen)
- screen.blit(noise, (-camera_x, -camera_y))
- for item in items:
-     item.draw(screen)
- for enemy in enemies:
-     enemy.draw(screen)
-     if player.hitbox.colliderect(enemy.hitbox) and player.dmg_cd <= 0:
-            player.get_hit()
- if boss:
-     boss.draw(screen)
- player.draw()
- screen.blit(Font.render(f"Time until dawn: {max(0, int(night_time))}s", True, (255, 255, 255)), (10, 10))
- screen.blit(Font.render(f"HP: {player.health}", True, (255, 255, 255)), (10, 40))
- if debug_mode:
-     debug_text = Font.render("debug mode activated (F1)", True, (255, 255, 255))
-     player_info = Font.render(f"Current Terrain: {player.current_surface}", True, (255, 255, 255))
-     screen.blit(debug_text, (10, 70))
-     screen.blit(player_info, (10, 100))
-            # # a* visual!!
-
-     for enemy in enemies:
-           if len(enemy.path) >= 2:
-               points = [(int(p.x - camera_x), int(p.y - camera_y)) for p in enemy.path]
-               pygame.draw.lines(screen, (255, 0, 0), False, points, 2)
-           screen.blit(Font.render(enemy.current_state, True, (255, 255, 0)), (enemy.pos.x - camera_x, enemy.pos.y - camera_y - 22))
-           
-
-     if boss:
-         if len(boss.path) >= 2:
-             pts = [(int(p.x - camera_x), int(p.y - camera_y)) for p in boss.path]
-             pygame.draw.lines(screen, (255, 0, 0), False, pts, 3)
-         if boss.predicted_tile:
-             tx, ty = boss.predicted_tile
-             wx, wy = tx * TILE_SIZE - camera_x, ty * TILE_SIZE - camera_y
-             pygame.draw.rect(screen, (255, 255, 0), (wx, wy, TILE_SIZE, TILE_SIZE), 2)
-             screen.blit(Font.render("AMBUSH", True, (255, 255, 0)),
-                         (wx, wy - 18))
- if game_over:
-     screen.blit(Font.render("Game Over. (r.i.p. lmao)", True, (255, 255, 255), (0, 0, 0)), (WIDTH//2 - 150, HEIGHT//2))
- elif game_won:
-     screen.blit(Font.render("Dracula hath been slain. good job mh", True, (0, 255, 0)), (WIDTH//2 - 200, HEIGHT//2))
- pygame.display.flip()
-pygame.quit()
+         
+  keys = pygame.key.get_pressed()
+  if not game_over and not game_won:
+      player.player_input(keys, dt, enemies, boss) # need to change player to use this
+ 
+  if not (game_over or game_won):
+      night_time -= dt
+      if night_time <= 0 and not dracula_spawned:
+          print("You idiots haven't caught that human yet!?")
+          print("I'm taking matters into my own hands.")
+          print("Dracula approaches as the sun rises.")
+          boss = Boss(player.pos.x + 100 + random.randint(-200, 200), player.pos.y + 100 + random.randint(-200, 200)) #spawn boss (we should make a random spawning method)
+          dracula_spawned = True
+      
+      player.update() # surface and terrain interaction
+    
+      camera_x = max(0,min(player.pos.x - WIDTH//2, WIDTH*MAP_SIZE-WIDTH))
+      camera_y = max(0,min(player.pos.y - HEIGHT//2, HEIGHT*MAP_SIZE-HEIGHT))
+ 
+ 
+      predictor.recordMoves(player.pos, maze, dt)
+  
+      for enemy in enemies:
+          enemy.fsm(player)
+          enemy.track(player, dt, maze) # add enemy death
+      enemies = [e for e in enemies if e.health>0]
+      if player.health <= 0:
+          game_over = True
+      if boss:
+          boss.update(player, maze, predictor, dt)
+          if boss.health <= 0:
+              game_won = True
+ 
+ # We once sang/ Retrograde, we'd shake the frame of your car/
+ # Now I know your name, but not who you are/ It's all okay/
+ # There ain't a drop of bad blood, it's all my love
+ 
+ 
+ ##########    rendering:
+  screen.fill((0, 0, 0))
+  maze.draw(screen)
+  screen.blit(noise, (-camera_x, -camera_y))
+  for item in items:
+      item.draw(screen)
+  for enemy in enemies:
+      enemy.draw(screen)
+      if player.hitbox.colliderect(enemy.hitbox) and player.dmg_cd <= 0:
+             player.get_hit()
+  if boss:
+      boss.draw(screen)
+  player.draw()
+  screen.blit(Font.render(f"Time until dawn: {max(0, int(night_time))}s", True, (255, 255, 255)), (10, 10))
+  screen.blit(Font.render(f"HP: {player.health}", True, (255, 255, 255)), (10, 40))
+  if debug_mode:
+      debug_text = Font.render("debug mode activated (F1)", True, (255, 255, 255))
+      player_info = Font.render(f"Current Terrain: {player.current_surface}", True, (255, 255, 255))
+      screen.blit(debug_text, (10, 70))
+      screen.blit(player_info, (10, 100))
+             # # a* visual!!
+ 
+      for enemy in enemies:
+            if len(enemy.path) >= 2:
+                points = [(int(p.x - camera_x), int(p.y - camera_y)) for p in enemy.path]
+                pygame.draw.lines(screen, (255, 0, 0), False, points, 2)
+            screen.blit(Font.render(enemy.current_state, True, (255, 255, 0)), (enemy.pos.x - camera_x, enemy.pos.y - camera_y - 22))
+            
+ 
+      if boss:
+          if len(boss.path) >= 2:
+              pts = [(int(p.x - camera_x), int(p.y - camera_y)) for p in boss.path]
+              pygame.draw.lines(screen, (255, 0, 0), False, pts, 3)
+          if boss.predicted_tile:
+              tx, ty = boss.predicted_tile
+              wx, wy = tx * TILE_SIZE - camera_x, ty * TILE_SIZE - camera_y
+              pygame.draw.rect(screen, (255, 255, 0), (wx, wy, TILE_SIZE, TILE_SIZE), 2)
+              screen.blit(Font.render("AMBUSH", True, (255, 255, 0)),
+                          (wx, wy - 18))
+  if game_over:
+      screen.blit(Font.render("Game Over. (r.i.p. lmao)", True, (255, 255, 255), (0, 0, 0)), (WIDTH//2 - 150, HEIGHT//2))
+  elif game_won:
+      screen.blit(Font.render("Dracula hath been slain. good job mh", True, (0, 255, 0)), (WIDTH//2 - 200, HEIGHT//2))
+  pygame.display.flip()
+  await asyncio.sleep(0)
+ pygame.quit()
 asyncio.run(main())
