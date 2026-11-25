@@ -1,11 +1,12 @@
-# # change boss/enemy speed by speed_terrain_mult or wtv its called
-# #   ^^^^^maybe just do for boss as he’s a vampire but normal enemies are bats?
-    # # i think it's better to give them to the boss, but this is a low priority problem
-# # BY FAR THE LARGEST PRIORITY: implement damage to enemies and garlic and allat
-# # make the win-condition actually trigger
-# # art: sprites
-# # art: win/loss screens (do this last once everything is done)
-# # try to debug boss taking forever to start moving
+# # can boss still spawn in rock or did i actually fix it ??
+# then if the game runs we can present
+
+#    **also need to add:**
+# (we can do this after presenting tho)
+
+# # win/lose screens with stats
+# # an attack animation or something
+# # damage animation (could just be sprite flashes white / red) for all
 
 
 import pygame
