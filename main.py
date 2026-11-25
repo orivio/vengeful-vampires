@@ -489,7 +489,15 @@ class Boss:
         self.repath_timer = 0
         self.predicted_tile = None
         self.dir = pygame.math.Vector2(1, 0)
-
+        self.forward_sprite = pygame.image.load(r"sprites/dracula/dracula forward.png").convert_alpha()
+        self.forward_sprite = pygame.transform.scale(self.forward_sprite, (75, 75))
+        self.left_sprite = pygame.image.load(r"sprites/dracula/dracula left.png").convert_alpha()
+        self.left_sprite = pygame.transform.scale(self.left_sprite, (75, 75))
+        self.right_sprite = pygame.image.load(r"sprites/dracula/dracula right.png").convert_alpha()
+        self.right_sprite = pygame.transform.scale(self.right_sprite, (75, 75))
+        self.back_sprite = pygame.image.load(r"sprites/dracula/dracula back.png").convert_alpha()
+        self.back_sprite = pygame.transform.scale(self.back_sprite, (75, 75))
+        self.current_sprite = self.forward_sprite
     def update(self, player, maze, predictor, dt):
         self.repath_timer -= dt
         if self.repath_timer <= 0:
@@ -527,8 +535,19 @@ class Boss:
     def get_hit(self, dmg=10):
         self.hp = max(0, self.hp - dmg)
     def draw(self, screen):
-        pygame.draw.rect(screen, (200, 0, 0),
-                         (self.pos.x - camera_x, self.pos.y - camera_y, 50, 50)) # replace with sprite
+       # pygame.draw.rect(screen, (200, 0, 0),(self.pos.x - camera_x, self.pos.y - camera_y, 50, 50)) # replace with sprite
+        screen.blit(self.current_sprite, (self.pos.x - camera_x - 10, self.pos.y - camera_y - 15))
+        self.sprite_upd()
+    def sprite_upd(self):
+        temp = self.dir.normalize()
+        if temp.y > 0:
+            self.current_sprite = self.forward_sprite
+        elif temp.y < 0:
+            self.current_sprite = self.back_sprite
+        if temp.x > 0:
+            self.current_sprite = self.right_sprite
+        elif temp.x < 0:
+            self.current_sprite = self.left_sprite 
 
 
 ## main loop:
