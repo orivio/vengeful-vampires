@@ -484,7 +484,7 @@ class Item:
 class Boss:
     def __init__(self, x, y):
         self.pos = pygame.math.Vector2(x, y)
-        self.hp = 100
+        self.hp = 450
         self.state = "Ambush"
         self.path = []
         self.path_index = 0
