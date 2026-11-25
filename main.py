@@ -226,10 +226,18 @@ class Player: ## define player
      self.dmg_cd = 20
  def player_input(self, keys, dt, enemies):
      direction = pygame.math.Vector2(0, 0)
-     if keys[pygame.K_w]: direction.y -= 1
-     if keys[pygame.K_s]: direction.y += 1
-     if keys[pygame.K_a]: direction.x -= 1
-     if keys[pygame.K_d]: direction.x += 1
+     if keys[pygame.K_w]:
+         direction.y -= 1
+         self.current_sprite = self.back_sprite
+     if keys[pygame.K_s]:
+         direction.y += 1
+         self.current_sprite = self.forward_sprite
+     if keys[pygame.K_a]:
+         direction.x -= 1
+         self.current_sprite = self.left_sprite
+     if keys[pygame.K_d]:
+         direction.x += 1
+         self.current_sprite = self.right_sprite
      if direction.length_squared() > 0:
          self.dir = direction.normalize()
          speed_adjust = 1
