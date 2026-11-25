@@ -209,8 +209,18 @@ class Player: ## define player
      self.current_surface = "grass"
      self.garlic_timer = 0
      self.dmg_cd = 100
-     self.dmg = 50
+     self.dmg = 10
      self.range = 40
+     self.attack_cd = 50
+     self.forward_sprite = pygame.image.load(r"sprites/player/player forward.png").convert_alpha()
+     self.forward_sprite = pygame.transform.scale(self.forward_sprite, (50, 50))
+     self.left_sprite = pygame.image.load(r"sprites/player/player left.png").convert_alpha()
+     self.left_sprite = pygame.transform.scale(self.left_sprite, (50, 50))
+     self.right_sprite = pygame.image.load(r"sprites/player/player right.png").convert_alpha()
+     self.right_sprite = pygame.transform.scale(self.right_sprite, (50, 50))
+     self.back_sprite = pygame.image.load(r"sprites/player/player backward.png").convert_alpha()
+     self.back_sprite = pygame.transform.scale(self.back_sprite, (50, 50))
+     self.current_sprite = self.forward_sprite
  def get_hit(self, amount = 10):
      self.health = max(0,self.health - amount)
      self.dmg_cd = 20
@@ -229,7 +239,9 @@ class Player: ## define player
          else:
              self.stamina = min(100,self.stamina+30*dt)
          self.Walk(dt, speed_adjust)
-     if keys[pygame.K_f]: self.detect(enemies)
+     if keys[pygame.K_f] and self.attack_cd <= 0:
+         self.detect(enemies)
+         self.attack_cd = 50
    
  def Walk(self, dt, s_a):
      terrains = {"grass": 1.0, "mud": 0.6, "water": 0.4}
@@ -249,7 +261,8 @@ class Player: ## define player
  def Apply_GarlicEffect(self):
      pass
  def draw(self):
-      pygame.draw.rect(screen, (255, 255, 255), (self.hitbox.x - camera_x, self.hitbox.y - camera_y, self.hitbox.width, self.hitbox.height))
+      #pygame.draw.rect(screen, (255, 255, 255), (self.hitbox.x - camera_x, self.hitbox.y - camera_y, self.hitbox.width, self.hitbox.height))
+      screen.blit(self.current_sprite, (self.hitbox.x - camera_x - 15, self.hitbox.y - camera_y - 8))
  def update_surface(self): 
      temp = noise.get_at((int(self.pos.x), int(self.pos.y)))
      match ((temp.r, temp.g, temp.b)):
@@ -270,6 +283,7 @@ class Player: ## define player
      self.hitbox.left = self.pos.x - 5
      self.hitbox.top = self.pos.y - 10
      self.dmg_cd -= 1
+     self.attack_cd -= 1
  def detect(self, others):
      for enemy in others:
          dist = abs(self.pos.distance_to(enemy.pos))
@@ -532,6 +546,7 @@ items.append(Item(200, 200, "bread"))
 items.append(Item(300, 300, "quiver"))
 # main loop!!
 while running:
+ print(player.attack_cd)
  # dt is seconds btw bcs clock tick does ms
  dt = Clock.tick(60)/1000.0
  for event in pygame.event.get():
@@ -542,9 +557,9 @@ while running:
              running = False
          elif event.key == pygame.K_F1:
              debug_mode = not debug_mode # debug mode switching
-         elif event.key == pygame.K_f and not game_over and not game_won:
+         #elif event.key == pygame.K_f and not game_over and not game_won:
              # shooting method
-             print("Player shot bow")
+          #   print("Player shot bow")
          elif event.key == pygame.K_b and debug_mode and not boss:
              boss = Boss(player.pos.x + 200, player.pos.y + 200)
              dracula_spawned = True
